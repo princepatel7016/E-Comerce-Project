@@ -55,7 +55,7 @@ const userSchema = new mongoose.Schema(
             default: "",
         },
 
-        pincode:{
+        postalCode:{
             type: String,
             trim: true,
             default: "",

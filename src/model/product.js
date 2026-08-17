@@ -8,13 +8,13 @@ const productSchema = new mongoose.Schema(
         trim: true,
         },
 
-    // slug:{
-    //     type: String,
-    //     required: true,
-    //     unique: true,
-    //     lowercase: true,
-    //     trim: true,
-    // },
+    slug:{
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
 
     description:{
         type: String,
@@ -70,6 +70,7 @@ const productSchema = new mongoose.Schema(
     },
 
     sku:{
+        //unique product code
         type: String,
         unique: true,
         trim: true,

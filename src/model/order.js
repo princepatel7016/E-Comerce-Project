@@ -49,7 +49,7 @@ const orderSchema = new mongoose.Schema(
         min: 0,
     },
 
-    // Shipping charges
+    // Shipping charges mins Delivery charge
     shippingPrice:{
         type: Number,
         default: 0,
