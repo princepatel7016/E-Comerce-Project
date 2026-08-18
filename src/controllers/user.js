@@ -4,6 +4,7 @@ import { User } from "../model/user.js";
 import {uploadoncloudinary} from "../utils/cloudnary.js";
 import {ApiResponse} from "../utils/apiResponse.js"
 
+
 const signupUser = asyncHandler(async (req, res) => {
 
     const {username, email, password, phone,} = req.body;
@@ -25,15 +26,14 @@ const signupUser = asyncHandler(async (req, res) => {
     }
 
 
-    let avatarUrl = "";
-
+    let avatar = "";
     if (req.files?.avatar?.[0]?.path) {
 
-    const avatarlocalpath = req.files.avatar[0].path;
-    const avatar = await uploadoncloudinary(avatarlocalpath);
+    const avatarLocalPath = req.files.avatar[0].path;
+    const avatarResponse = await uploadoncloudinary(avatarLocalPath);
 
-    if (avatar) {
-         avatarUrl = avatar.url;
+    if (avatarResponse) {
+        avatar = avatarResponse.url;
     }
 }
 
@@ -44,7 +44,7 @@ const signupUser = asyncHandler(async (req, res) => {
         email: email.toLowerCase(),
         password,
         phone,
-        avatar: avatarUrl
+        avatar
     });
 
     // Remove sensitive fields from response
