@@ -16,11 +16,12 @@ const signupUser = asyncHandler(async (req, res) => {
     const existingUser = await User.findOne({
         $or: [
             { phone },
+            { email }
         ],
     });
 
     if (existingUser) {
-        throw new ApiError( 409,  "phon no is already exists");
+        throw new ApiError( 409,  "phon no and email is already exists");
     }
 
 
@@ -32,7 +33,7 @@ const signupUser = asyncHandler(async (req, res) => {
     const avatar = await uploadoncloudinary(avatarlocalpath);
 
     if (avatar) {
-        avatarUrl = avatar.url;
+         avatarUrl = avatar.url;
     }
 }
 
@@ -43,7 +44,7 @@ const signupUser = asyncHandler(async (req, res) => {
         email: email.toLowerCase(),
         password,
         phone,
-       avatar:avatar.url
+        avatar: avatarUrl
     });
 
     // Remove sensitive fields from response

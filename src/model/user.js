@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             trim: true,
             required:true,
+            match: /^[0-9]{10}$/
         },
 
         address: {
@@ -83,7 +84,7 @@ userSchema.pre("save", async function (next) {
     if(!this.isModified("password")) return next()
 
     this.password = await bcrypt.hash(this.password,10)
-    next()
+
 })
 
 
