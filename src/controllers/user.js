@@ -2,8 +2,25 @@ import { asyncHandler } from  "../utils/asynchandler.js";
 import {ApiError} from "../utils/apiError.js"
 import { User } from "../model/user.js";
 import {uploadoncloudinary} from "../utils/cloudnary.js";
-import {ApiResponse} from "../utils/apiResponse.js"
+import {ApiResponse} from "../utils/apiResponse.js";
+import {sendOtp, verifyOtp} from "../utils/twilio.js"
 
+const genrateaccessandrefreshtoken = async(userid) => {
+    try{
+        const user = await User.findById(userid) // Database se pura user object aa gaya.
+        const accesstoken = user.genrateAccessToken() //Access Token banana
+        const refreshToken = user.genrateRefreshToken()
+
+        
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false})  //Refresh Token database me save karna
+
+        return {accesstoken,refreshToken}
+
+    }catch(error){
+        throw new ApiError(500, "somthing went wrong while genrating refresh and acess token" )
+    }
+}
 
 const signupUser = asyncHandler(async (req, res) => {
 
@@ -61,7 +78,40 @@ const signupUser = asyncHandler(async (req, res) => {
 });
 
 
+const loginUser = asyncHandler(async (req,res)=>{
+    const {phone , otp } = req.body
+    
+    if (!phone || !otp) {
+        throw new ApiError(400, "Phone and OTP are required");
+    }
+
+    const user = await User.findOne({phone})
+
+    if(!user){
+        throw new ApiError(404,"User not found")
+    }
+
+    
+    const verification = await verifyOtp(phone, otp);
+
+    if (verification.status !== "approved") {
+        throw new ApiError(401, "Invalid OTP");
+    }
+
+    const {accesstoken,refreshToken} = genrateaccessandrefreshtoken(user._id)
+
+    const loggedinuser = await User.findById(user._id).
+    select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true 
+    }
+
+})
+
 
 export {
-   signupUser
+   signupUser,
+    loginUser
 }
