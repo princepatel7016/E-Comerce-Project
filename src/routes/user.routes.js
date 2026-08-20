@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { signupUser } from "../controllers/user.js"
+import { signupUser , loginUser } from "../controllers/user.js"
 import { upload } from "../middlewares/multer.middleware.js"
 
 const router = Router()
@@ -13,5 +13,7 @@ router.route("/signup").post(
     ]),
     signupUser
 )
+
+router.route("/login").post(loginUser)
 
 export default router

@@ -79,6 +79,7 @@ const signupUser = asyncHandler(async (req, res) => {
 
 
 const loginUser = asyncHandler(async (req,res)=>{
+    
     const {phone , otp } = req.body
     
     if (!phone || !otp) {
@@ -98,15 +99,30 @@ const loginUser = asyncHandler(async (req,res)=>{
         throw new ApiError(401, "Invalid OTP");
     }
 
-    const {accesstoken,refreshToken} = genrateaccessandrefreshtoken(user._id)
+    const {accesstoken,refreshToken} = await genrateaccessandrefreshtoken(user._id)
 
     const loggedinuser = await User.findById(user._id).
-    select("-password -refreshToken")
+          select("-password -refreshToken");
 
     const options = {
         httpOnly: true,
         secure: true 
     }
+
+    return res
+    .status(200)
+    .cookie("accessToken", accesstoken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedinuser,
+                accesstoken
+            },
+            "User logged in successfully"
+        )
+    );
 
 })
 
