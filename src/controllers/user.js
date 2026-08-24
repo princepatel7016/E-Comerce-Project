@@ -3,7 +3,7 @@ import {ApiError} from "../utils/apiError.js"
 import { User } from "../model/user.js";
 import {uploadoncloudinary} from "../utils/cloudnary.js";
 import {ApiResponse} from "../utils/apiResponse.js";
-import {sendOtp, verifyOtp} from "../utils/twilio.js"
+
 
 const genrateaccessandrefreshtoken = async(userid) => {
     try{
@@ -80,9 +80,9 @@ const signupUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req,res)=>{
     
-    const {phone , otp } = req.body
+    const {phone} = req.body;
     
-    if (!phone || !otp) {
+    if (!phone) {
         throw new ApiError(400, "Phone and OTP are required");
     }
 
@@ -90,13 +90,6 @@ const loginUser = asyncHandler(async (req,res)=>{
 
     if(!user){
         throw new ApiError(404,"User not found")
-    }
-
-    
-    const verification = await verifyOtp(phone, otp);
-
-    if (verification.status !== "approved") {
-        throw new ApiError(401, "Invalid OTP");
     }
 
     const {accesstoken,refreshToken} = await genrateaccessandrefreshtoken(user._id)

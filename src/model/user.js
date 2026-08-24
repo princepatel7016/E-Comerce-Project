@@ -70,7 +70,6 @@ const userSchema = new mongoose.Schema(
             default: "INDIA",
         },
 
-
         refreshToken:{
             type: String
         }
@@ -121,3 +120,4 @@ userSchema.methods.genrateRefreshToken = function(){
 }
 
 export const User = mongoose.model("User", userSchema) 
+
