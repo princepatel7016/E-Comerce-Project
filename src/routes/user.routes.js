@@ -1,19 +1,22 @@
-import {Router} from "express"
-import { signupUser , loginUser } from "../controllers/user.js"
-import { upload } from "../middlewares/multer.middleware.js"
+import { Router } from "express";
+import {
+  getUserProfile,
+  updateUserProfile,
+  changeCurrentPassword
+} from "../controllers/user.js";
+import { registerUser, loginUser } from "../controllers/auth.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
-const router = Router()
+const router = Router();
 
-router.route("/signup").post(
-    upload.fields([
-        {
-            name: "avatar",
-            maxCount: 1
-        }
-    ]),
-    signupUser
-)
+// Backward compatibility with previous signup & login endpoints
+router.post("/signup", upload.single("avatar"), registerUser);
+router.post("/login", loginUser);
 
-router.route("/login").post(loginUser)
+// User profile management (Protected)
+router.get("/profile", verifyJWT, getUserProfile);
+router.patch("/profile", verifyJWT, upload.single("avatar"), updateUserProfile);
+router.patch("/change-password", verifyJWT, changeCurrentPassword);
 
-export default router
+export default router;

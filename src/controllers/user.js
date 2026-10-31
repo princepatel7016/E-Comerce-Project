@@ -1,126 +1,95 @@
-import { asyncHandler } from  "../utils/asynchandler.js";
-import {ApiError} from "../utils/apiError.js"
-import { User } from "../model/user.js";
-import {uploadoncloudinary} from "../utils/cloudnary.js";
-import {ApiResponse} from "../utils/apiResponse.js";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadOnCloudinary } from "../config/cloudinary.js";
+import { registerUser as signupUser, loginUser, logoutUser } from "./auth.js";
 
-
-const genrateaccessandrefreshtoken = async(userid) => {
-    try{ 
-        const user = await User.findById(userid) // Database se pura user object aa gaya.
-        const accesstoken = user.genrateAccessToken() //Access Token banana
-        const refreshToken = user.genrateRefreshToken()
-
-        
-        user.refreshToken = refreshToken
-        await user.save({validateBeforeSave: false})  //Refresh Token database me save karna
-
-        return {accesstoken,refreshToken}
-
-    }catch(error){
-        throw new ApiError(500, "somthing went wrong while genrating refresh and acess token" )
-    }
-}
-
-const signupUser = asyncHandler(async (req, res) => {
-
-    const {username, email, password, phone,} = req.body;
-    
-    if (!username || !email || !password || !phone) {
-        throw new ApiError(400, "All fields are required");
-    }
-
-    // Check user already exists
-    const existingUser = await User.findOne({
-        $or: [
-            { phone },
-            { email }
-        ],
-    });
-
-    if (existingUser) {
-        throw new ApiError( 409,  "phon no and email is already exists");
-    }
-
-
-    let avatar = "";
-    if (req.files?.avatar?.[0]?.path) {
-
-    const avatarLocalPath = req.files.avatar[0].path;
-    const avatarResponse = await uploadoncloudinary(avatarLocalPath);
-
-    if (avatarResponse) {
-        avatar = avatarResponse.url;
-    }
-}
-
-
-    // Create user
-    const user = await User.create({
-        username: username.toLowerCase(), 
-        email: email.toLowerCase(),
-        password,
-        phone,
-        avatar
-    });
-
-    // Remove sensitive fields from response
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    );
-
-    if (!createdUser) {throw new ApiError(500, "Something went wrong while creating user");
-    }
-
-    return res.status(201).json(
-        new ApiResponse( 201, createdUser,"User registered successfully")
-    );
+/**
+ * @desc    Get user profile
+ * @route   GET /api/v1/users/profile
+ * @access  Private
+ */
+const getUserProfile = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "User profile fetched successfully"));
 });
 
+/**
+ * @desc    Update user profile details (fullName, phoneNumber, avatar)
+ * @route   PATCH /api/v1/users/profile
+ * @access  Private
+ */
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const { fullName, phoneNumber, phone } = req.body;
+  const newPhone = phoneNumber || phone;
 
-const loginUser = asyncHandler(async (req,res)=>{
-    
-    const {phone} = req.body;
-    
-    if (!phone) {
-        throw new ApiError(400, "Phone and OTP are required");
+  const updateFields = {};
+  if (fullName?.trim()) updateFields.fullName = fullName.trim();
+  if (newPhone?.trim()) {
+    updateFields.phoneNumber = newPhone.trim();
+    updateFields.phone = newPhone.trim();
+  }
+
+  // Handle avatar update if new image file uploaded
+  const avatarLocalPath = req.file?.path || req.files?.avatar?.[0]?.path;
+  if (avatarLocalPath) {
+    const uploadedAvatar = await uploadOnCloudinary(avatarLocalPath, "users/avatars");
+    if (uploadedAvatar) {
+      updateFields.avatar = uploadedAvatar.secure_url || uploadedAvatar.url;
     }
+  }
 
-    const user = await User.findOne({phone})
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updateFields },
+    { new: true, runValidators: true }
+  ).select("-password -refreshToken");
 
-    if(!user){
-        throw new ApiError(404,"User not found")
-    }
-
-    const {accesstoken,refreshToken} = await genrateaccessandrefreshtoken(user._id)
-
-    const loggedinuser = await User.findById(user._id).
-          select("-password -refreshToken");
-
-    const options = {
-        httpOnly: true,
-        secure: true 
-    }
-
-    return res
+  return res
     .status(200)
-    .cookie("accessToken", accesstoken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new ApiResponse(
-            200,
-            {
-                user: loggedinuser,
-                accesstoken
-            },
-            "User logged in successfully"
-        )
-    );
+    .json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
+});
 
-})
+/**
+ * @desc    Change user password
+ * @route   PATCH /api/v1/users/change-password
+ * @access  Private
+ */
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
 
+  if (!oldPassword || !newPassword) {
+    throw new ApiError(400, "Old password and new password are both required");
+  }
+
+  if (newPassword.length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters long");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  // Verify old password
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid old password. Please enter your correct current password.");
+  }
+
+  // Set new password (the pre('save') hook will hash it)
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: true });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
 
 export {
-   signupUser,
-    loginUser
-}
+  getUserProfile,
+  updateUserProfile,
+  changeCurrentPassword,
+  signupUser,
+  loginUser,
+  logoutUser
+};
