@@ -6,7 +6,7 @@ import {ApiResponse} from "../utils/apiResponse.js";
 
 
 const genrateaccessandrefreshtoken = async(userid) => {
-    try{
+    try{ 
         const user = await User.findById(userid) // Database se pura user object aa gaya.
         const accesstoken = user.genrateAccessToken() //Access Token banana
         const refreshToken = user.genrateRefreshToken()
